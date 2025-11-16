@@ -258,3 +258,39 @@ However, renewable energy explains only **4.83%** of global CO2 variance, indica
 **Analysis Date**: November 15, 2025  
 **Status**: COMPLETE & VALIDATED By Olayinka Julius 
 **Ready for**: Presentation, Publication, Policy Use
+
+---
+
+## Quick Reproduction & Regeneration
+
+To reproduce the analysis and regenerate the charts locally:
+
+1. Create and activate a virtual environment (Windows):
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1   # PowerShell
+# or for cmd.exe: .venv\Scripts\activate.bat
+```
+
+2. Install dependencies:
+
+```powershell
+pip install -r requirements.txt
+```
+
+3. Regenerate the charts:
+
+```powershell
+python final_chart_generation.py
+# or generate only missing charts
+python generate_missing_charts.py
+```
+
+4. Verify all charts were produced:
+
+```powershell
+python run_verification.py
+```
+
+Continuous Integration: a GitHub Actions workflow (`.github/workflows/generate-charts.yml`) is included to run the chart generation and upload PNG artifacts on push or pull requests.

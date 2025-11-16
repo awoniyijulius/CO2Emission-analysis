@@ -1,0 +1,41 @@
+name: Generate Charts
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Generate charts
+      run: |
+        python final_chart_generation.py
+
+    - name: Upload charts as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: charts
+        path: |
+          01_Main_Correlation_Analysis.png
+          02_Regional_Disparities_Analysis.png
+          03_High_vs_Low_Renewable_Analysis.png
+          04_Top_10_Countries_Comparison.png
+          05_Outliers_and_Clutch_Moments.png
+          06_Summary_Statistics_Dashboard.png
