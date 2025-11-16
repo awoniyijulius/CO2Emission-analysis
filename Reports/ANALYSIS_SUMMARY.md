@@ -82,7 +82,7 @@ v# Sustainability Analysis: CO2 vs Renewable Energy (2022)
 - **t-statistic**: -2.0116
 - **P-value**: 0.048481
 - **Significance Level**: α = 0.05
-- **Result**: **REJECT NULL HYPOTHESIS** (p < 0.05) ✓
+- **Result**: **REJECT NULL HYPOTHESIS** (p < 0.05) 
 - **Interpretation**: **STATISTICALLY SIGNIFICANT DIFFERENCE FOUND**
 
 **Conclusion**: High renewable adoption countries have **SIGNIFICANTLY DIFFERENT** (lower) CO2 emissions than low renewable adoption countries. This supports the effectiveness of renewable energy adoption in reducing carbon emissions.
