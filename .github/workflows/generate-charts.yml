@@ -27,6 +27,8 @@ jobs:
     - name: Generate charts
       run: |
         python final_chart_generation.py
+        # Run verification to fail the job if charts are missing
+        python run_verification.py
 
     - name: Upload charts as artifact
       uses: actions/upload-artifact@v4
