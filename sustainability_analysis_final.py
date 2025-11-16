@@ -9,6 +9,7 @@ import seaborn as sns
 import numpy as np
 from scipy import stats
 from scipy.stats import pearsonr, spearmanr, ttest_ind, f_oneway
+from region_mapping import REGION_MAP
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -41,17 +42,8 @@ merged["Renewable %"] = pd.to_numeric(merged["Renewable %"], errors="coerce")
 # Drop rows with missing values
 merged.dropna(subset=["CO2 per capita", "Renewable %"], inplace=True)
 
-# Add regional grouping (expand as needed)
-region_map = {
-    "Nigeria": "Africa", "Ghana": "Africa", "Kenya": "Africa",
-    "Germany": "Europe", "France": "Europe", "United Kingdom": "Europe",
-    "China": "Asia", "India": "Asia", "Japan": "Asia",
-    "Brazil": "South America", "Argentina": "South America",
-    "United States": "North America", "Canada": "North America",
-    "Australia": "Oceania"
-}
-
-merged["Region"] = merged["Country"].map(region_map)
+# Add regional grouping (imported from region_mapping.py - comprehensive coverage)
+merged["Region"] = merged["Country"].map(REGION_MAP)
 
 regional_avg = (
     merged.dropna(subset=["Region"])
@@ -135,31 +127,33 @@ r_squared = pearson_r ** 2
 print(f"\nCoefficient of Determination (R^2): {r_squared:.4f}")
 print(f"  -> {r_squared*100:.2f}% of CO2 variance is explained by renewable energy adoption")
 
-# === H2: Regional Disparities (ANOVA) ===
-print("\n[H2] REGIONAL DISPARITIES TEST: One-way ANOVA")
+# === H2: Top 25% vs Bottom 25% CO2 Emitters (Independent t-test) ===
+print("\n[H2] CO2 EMITTERS COMPARISON TEST: Top 25% vs Bottom 25% (Independent t-test)")
 print("-"*80)
 
-# Filter to only include regions that exist in data
-regions_with_data = merged[merged["Region"].notna()].groupby("Region")["CO2 per capita"].apply(list).to_dict()
+# Compare renewable % adoption between high and low CO2 emitters
+quartile_25_idx = len(merged) // 4
+top_25_co2 = merged.nlargest(quartile_25_idx, "CO2 per capita")
+bottom_25_co2 = merged.nsmallest(quartile_25_idx, "CO2 per capita")
 
-if len(regions_with_data) >= 2:
-    regional_groups = list(regions_with_data.values())
-    f_statistic, anova_p = f_oneway(*regional_groups)
-    
-    print(f"F-statistic: {f_statistic:.4f}")
-    print(f"P-value: {anova_p:.6f}")
-    print(f"Significance Level: alpha = {SIGNIFICANCE_LEVEL}")
-    
-    if anova_p < SIGNIFICANCE_LEVEL:
-        print(f"[+] RESULT: REJECT NULL HYPOTHESIS (p < {SIGNIFICANCE_LEVEL})")
-        print(f"  -> There ARE statistically significant differences in CO2 emissions across regions")
-    else:
-        print(f"[-] RESULT: FAIL TO REJECT NULL HYPOTHESIS (p >= {SIGNIFICANCE_LEVEL})")
-        print(f"  -> No significant regional differences detected")
+top_25_renew = top_25_co2["Renewable %"].dropna()
+bottom_25_renew = bottom_25_co2["Renewable %"].dropna()
+
+f_statistic, anova_p = ttest_ind(top_25_renew, bottom_25_renew)
+
+print(f"Top 25% CO2 Emitters (n={len(top_25_renew)}): Mean Renewable% = {top_25_renew.mean():.2f}% (±{top_25_renew.std():.2f}%)")
+print(f"Bottom 25% CO2 Emitters (n={len(bottom_25_renew)}): Mean Renewable% = {bottom_25_renew.mean():.2f}% (±{bottom_25_renew.std():.2f}%)")
+print(f"Difference in Mean Renewable%: {abs(top_25_renew.mean() - bottom_25_renew.mean()):.2f}%")
+print(f"\nt-statistic: {f_statistic:.4f}")
+print(f"P-value: {anova_p:.6f}")
+print(f"Significance Level: alpha = {SIGNIFICANCE_LEVEL}")
+
+if anova_p < SIGNIFICANCE_LEVEL:
+    print(f"[+] RESULT: REJECT NULL HYPOTHESIS (p < {SIGNIFICANCE_LEVEL})")
+    print(f"  -> High CO2 emitters have SIGNIFICANTLY different renewable adoption than low CO2 emitters")
 else:
-    print(f"[!] WARNING: Only {len(regions_with_data)} regions with data. ANOVA requires at least 2 groups.")
-    print(f"Regions identified in data: {list(regions_with_data.keys())}")
-    f_statistic, anova_p = np.nan, np.nan
+    print(f"[-] RESULT: FAIL TO REJECT NULL HYPOTHESIS (p >= {SIGNIFICANCE_LEVEL})")
+    print(f"  -> No significant difference in renewable adoption between high and low CO2 emitters")
 
 # === H3: High vs Low Renewable Adoption ===
 print("\n[H3] RENEWABLE EFFECTIVENESS TEST: Independent t-test")
@@ -555,7 +549,7 @@ ax6.axis('off')
 ax7 = fig.add_subplot(gs[2, :])
 findings_text = f"""KEY FINDINGS & INTERPRETATION:
 - H1 (Correlation): {'Strong negative correlation detected' if pearson_r < -0.5 else 'Moderate/weak correlation observed'}
-- H2 (Regional Disparities): {'Significant differences exist' if (not np.isnan(anova_p) and anova_p < SIGNIFICANCE_LEVEL) else 'No significant regional differences'}
+- H2 (CO2 Emitters): {'High CO2 emitters have significantly different renewable adoption' if anova_p < SIGNIFICANCE_LEVEL else 'No significant difference in renewable adoption'}
 - H3 (Renewable Effectiveness): {'High renewable adoption countries have significantly lower CO2' if ttest_p < SIGNIFICANCE_LEVEL else 'No significant difference'}
 - Overall: {f'{r_squared*100:.1f}% of CO2 variation explained by renewable energy' if r_squared > 0.3 else 'Renewable energy is one of several factors'}"""
 ax7.text(0.05, 0.5, findings_text, fontsize=11, transform=ax7.transAxes, 

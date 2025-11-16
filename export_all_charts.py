@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
+from region_mapping import REGION_MAP
 
 os.chdir(r"c:\Users\Admin\Documents\sustainability_project")
 
@@ -21,19 +22,8 @@ print("="*80 + "\n")
 # Load data
 merged = pd.read_csv(r"CSV_files/Renewables_vs_CO2_2022.csv")
 
-# Region map
-region_map = {
-    "Nigeria": "Africa", "Ghana": "Africa", "Kenya": "Africa", "Ethiopia": "Africa", "Uganda": "Africa",
-    "South Africa": "Africa", "Botswana": "Africa", "Zimbabwe": "Africa", "Tanzania": "Africa", "Rwanda": "Africa",
-    "Germany": "Europe", "France": "Europe", "United Kingdom": "Europe", "Italy": "Europe", "Spain": "Europe",
-    "Poland": "Europe", "Netherlands": "Europe", "Belgium": "Europe", "Austria": "Europe", "Switzerland": "Europe",
-    "China": "Asia", "India": "Asia", "Japan": "Asia", "South Korea": "Asia", "Thailand": "Asia",
-    "Indonesia": "Asia", "Pakistan": "Asia", "Philippines": "Asia", "Vietnam": "Asia", "Bangladesh": "Asia",
-    "Brazil": "South America", "Argentina": "South America", "Chile": "South America", "Colombia": "South America",
-    "United States": "North America", "Canada": "North America", "Mexico": "North America",
-    "Australia": "Oceania", "New Zealand": "Oceania"
-}
-merged['Region'] = merged['Country'].map(region_map)
+# Region map (imported from region_mapping.py - comprehensive 66-country coverage)
+merged['Region'] = merged['Country'].map(REGION_MAP)
 
 # Compute all statistics
 pearson_r, pearson_p = stats.pearsonr(merged["Renewable %"], merged["CO2 per capita"])
@@ -51,12 +41,14 @@ t_statistic, ttest_p = stats.ttest_ind(high_renew, low_renew)
 if isinstance(ttest_p, (tuple, list, np.ndarray)):
     ttest_p = float(np.asarray(ttest_p).flatten()[0])
 
-regions_with_data = merged[merged["Region"].notna()].groupby("Region")["CO2 per capita"].apply(list).to_dict()
-if len(regions_with_data) >= 2:
-    regional_groups = list(regions_with_data.values())
-    f_statistic, anova_p = stats.f_oneway(*regional_groups)
-else:
-    f_statistic, anova_p = np.nan, np.nan
+# H2: New test - Top 25% vs Bottom 25% CO2 emitters (by CO2 per capita)
+quartile_25_idx = len(merged) // 4
+top_25_co2 = merged.nlargest(quartile_25_idx, "CO2 per capita")
+bottom_25_co2 = merged.nsmallest(quartile_25_idx, "CO2 per capita")
+f_statistic, anova_p = stats.ttest_ind(
+    top_25_co2["Renewable %"].dropna(),
+    bottom_25_co2["Renewable %"].dropna()
+)
 
 co2_no_na = merged["CO2 per capita"].fillna(merged["CO2 per capita"].mean())
 renew_no_na = merged["Renewable %"].fillna(merged["Renewable %"].mean())
