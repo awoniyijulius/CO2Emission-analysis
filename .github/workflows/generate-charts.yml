@@ -24,20 +24,30 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Generate charts
+    - name: Generate charts (high-res PNG 600dpi + SVG)
       run: |
-        python final_chart_generation.py
-        # Run verification to fail the job if charts are missing
+        python export_all_charts.py
         python run_verification.py
 
-    - name: Upload charts as artifact
+    - name: Upload PNG charts (600 dpi)
       uses: actions/upload-artifact@v4
       with:
-        name: charts
-        path: |
-          01_Main_Correlation_Analysis.png
-          02_Regional_Disparities_Analysis.png
-          03_High_vs_Low_Renewable_Analysis.png
-          04_Top_10_Countries_Comparison.png
-          05_Outliers_and_Clutch_Moments.png
-          06_Summary_Statistics_Dashboard.png
+        name: charts-png
+        path: '*.png'
+
+    - name: Upload SVG charts (vector)
+      uses: actions/upload-artifact@v4
+      with:
+        name: charts-svg
+        path: '*.svg'
+
+    - name: Archive all formats
+      run: |
+        apt-get update && apt-get install -y zip
+        zip -j charts-all.zip *.png *.svg
+
+    - name: Upload complete archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: charts-archive
+        path: charts-all.zip
